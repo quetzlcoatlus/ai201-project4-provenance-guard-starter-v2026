@@ -39,7 +39,7 @@
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
 
-
+A submission goes to the /submit route as a POST and requires a "creator_id" and a "text" attribute. "text" contains the text to analyze and "creator_id" is just the id of the submission's creator. This is 
 
 ---
 

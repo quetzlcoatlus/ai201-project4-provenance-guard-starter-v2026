@@ -45,60 +45,60 @@ Two things worth knowing before you pick numbers:
 ## 1.
 
 <!-- Your criterion. It must name a number. -->
-
+This service produces 0 false positive predictions on  on runs with borderline text.
 
 
 **Why this target:**
 
-
+False positives are expensive for the platform's brand PR and potential profit (due to loss of a client), so we want to minimize the chances of false positives even at the cost of false negatives.
 
 ---
 
 ## 2.
 
 <!-- Your criterion. -->
-
+An appeal changes status and is always recorded.
 
 
 **Why this target:**
 
-
+An appeal that isn't seen causes major PR damage and is required for someone to reconstruct what happened post-hoc. Therefore, appeals are recorded without fail.
 
 ---
 
 ## 3.
 
 <!-- Your criterion. -->
-
+Every single one of the three labels is reachable during each run.
 
 
 **Why this target:**
 
-
+If only a subset of the labels are reached each trial then it's possible we're failing to train bounds effectively for the classifier.
 
 ---
 
 ## 4.
 
 <!-- Your criterion. -->
-
+Clearly AI and clearly human text cases are spread at least 0.5 model score away from each other.
 
 
 **Why this target:**
 
-
+We need a large enough spread so that the borderline is expressive enough for us to reason about during appeals.
 
 ---
 
 ## 5.
 
 <!-- Your criterion. -->
-
+When text is missing, empty, or enormous (>10,000 words), the system rejects it with a reason why and a helpful diagnostic.
 
 
 **Why this target:**
 
-
+We need error handling for missing or empty because there's no difference between human and AI written content in that context. Also enormous texts need to be handled or filtered because otherwise we're risking spending a ton of compute.
 
 ---
 
