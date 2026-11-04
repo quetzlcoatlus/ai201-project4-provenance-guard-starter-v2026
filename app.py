@@ -248,7 +248,7 @@ def submit():
         warnings=warnings,
     )
 
-    # Step 1 - Route answers. Hardcoded without logic yet.
+    # Step 1 - Route answers.
     return jsonify({
         "content_id": content_id,
         "creator_id": creator_id,

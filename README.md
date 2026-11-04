@@ -128,7 +128,16 @@ $ curl -X POST http://127.0.0.1:5000/submit \
 ```
 
 ```json
-
+{
+  "confidence": 0.7544,
+  "content_id": "c_bfbd00800f24",
+  "creator_id": "demo_instructor",                         
+  "guess": "unsure",
+  "label": "not built yet",
+  "model_score": 0.7544,
+  "style_score": null,
+  "warnings": []
+}
 ```
 
 **An appeal**
@@ -150,7 +159,35 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 ```
 
 ```json
-
+{                                                                                                                                                    
+  "count": 2,                                                                                                                                        
+  "entries": 
+  [
+    {
+      "combined_score": null,
+      "content_id": "c_2b0714baf153",
+      "creator_id": "demo_instructor",
+      "guess": null,
+      "label": null,
+      "model_score": 0.7544,
+      "status": "undecided",
+      "style_score": null,
+      "timestamp": "2026-10-29T00:54:30+00:00"
+    },
+    {
+      "combined_score": null,
+      "content_id": "c_bfbd00800f24",
+      "creator_id": "demo_instructor",
+      "guess": null,
+      "label": null,
+      "model_score": 0.7544,
+      "status": "decided",
+      "style_score": null,
+      "timestamp": "2026-11-04T19:22:51+00:00",
+      "warnings": []
+    }
+  ]
+}
 ```
 
 ---
