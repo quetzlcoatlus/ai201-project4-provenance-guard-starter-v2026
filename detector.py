@@ -141,6 +141,12 @@ def warm_up() -> str:
     return f"{config.DETECTOR_MODEL} loaded and ready."
 
 
+def token_count(text: str) -> int:
+    """How many tokens the model would see if nothing were cut off."""
+    _, tokenizer = _load()
+    return len(tokenizer(text)["input_ids"])
+
+
 if __name__ == "__main__":
     import sys
 

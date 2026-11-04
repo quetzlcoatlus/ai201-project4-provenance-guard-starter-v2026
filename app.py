@@ -200,17 +200,43 @@ def submit():
     a malformed input is one of the most common real failures there is.
     """
     payload = request.get_json(silent=True) or {}
+    # `text` is missing, `null`, empty (including whitespace-only), or not a string gets a 400 with a JSON body naming the problem, and never a 500.
     text = payload.get("text")
     creator_id = payload.get("creator_id", "unknown")
+
+    # Step 2 - JSON goes in: pull text and creator_id out of the body
+    # null counts as missing; whitespace-only counts as empty
+    reason = None
+    if text is None:
+        reason, message = "missing_text", "\"text\" is missing or null."
+    elif not isinstance(text, str):
+        reason, message = "text_not_string", f"\"text\" must be a string, not {type(text).__name__}."
+    elif not text.strip():
+        reason, message = "empty_text", "\"text\" is empty or only whitespace."
+
+    if reason:
+        audit.log_rejection(creator_id=creator_id, reason=reason)
+        return jsonify({"error": "bad_request", "reason": reason, "message": message}), 400
+
+    assert isinstance(text, str)  # guaranteed by the checks above; tells the type checker
+    text = text.strip()
 
     # Step 3 - one real signal that we first tested from the terminal
     # python detector.py "some text"
     import detector
-    model_score = detector.model_signal(text)
+    try:
+        model_score = detector.model_signal(text)
+    except ValueError as exc:
+        # Under 3 tokens: too short for the model to score.
+        audit.log_rejection(creator_id=creator_id, reason="text_too_short")
+        return jsonify({"error": "bad_request", "reason": "text_too_short", "message": str(exc)}), 400
+    # Every request whose `text` is over 400 tokens is still scored, and its response includes a `warnings` entry saying only the first 400 tokens were analyzed.
 
-    # Step 2 - JSON goes in: pull text and creator_id out of the body
-    if not isinstance(text, str) or not text.strip():
-        return jsonify({"error": "bad_request", "message": "Send JSON with non-empty \"text\"."}), 400
+    warnings = []
+    if detector.token_count(text) > config.DETECTOR_MAX_TOKENS:
+        warnings.append(
+            f"Only the first {config.DETECTOR_MAX_TOKENS} tokens were analyzed by the model signal."
+        )
 
     # Step 4 - log the decision. Content_ID is what /appeal needs later
     content_id = f"c_{uuid.uuid4().hex[:12]}"
@@ -218,7 +244,8 @@ def submit():
         content_id=content_id,
         creator_id=creator_id,
         model_score=model_score,
-        status="undecided",
+        status="decided",
+        warnings=warnings,
     )
 
     # Step 1 - Route answers. Hardcoded without logic yet.
@@ -230,6 +257,7 @@ def submit():
         "label": "not built yet",
         "model_score": model_score,
         "style_score": None,
+        "warnings": warnings,
     }), 200
 
 
