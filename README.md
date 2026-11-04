@@ -53,37 +53,93 @@ A submission goes to the /submit route as a POST and requires a "creator_id" and
 
 ### Signal one — the model signal
 
-**What it measures:**
+**What it measures:** Perplexity. Essentially, how predictable a piece of text is.
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** Text written by an AI is statistically determined. Next token of text is predicted from the previous. So we expect AI written text to be highly "predictable" with that constraint.
 
-**What it can't see:**
+**What it can't see:** It can't guarantee falsify authorship. It can false positive on people who write with strict grammar, or someone that is less familiar with the language (young or used to another language). It also false negatives on ornate prose that contains rare words.
 
 ### Signal two — the style signal
 
-**What it measures:**
+**What it measures:** The shape of text and not single word predictability. Includes several metrics:
+- sentence_length_spread, the standard deviation of sentence length (in words) divided by the mean. Higher means more human. Counted in the style score.
+- type_token_ratio, unique words divided by total words, averaged over sliding 50-word windows (MATTR) so long and short texts are comparable. Higher means more varied vocabulary. **Computed but weighted 0:** on my samples it ran the opposite way from the expected direction (the AI sample had the *higher* ratio, 0.915 vs 0.808), and counting it dragged clear-AI text toward human.
+- punctuation_density, expressive punctuation marks per word: `, ; : ( ) ! ?`, em/en dashes, `--` and ellipses. Periods are excluded because sentence endings would dominate the count. Counted in the style score.
 
-**Why that might differ between human and AI writing:**
+Each counted metric goes through an S-curve so it becomes a 0–1 sub-score where higher means more AI (low spread → AI, low punctuation → AI). The style score is the mean of the two sub-scores.
 
-**What it can't see:**
+**Why that might differ between human and AI writing:** Generated prose, as a consequence of most likely next word, tends to have lower sentence_length_spread with a narrower vocabulary band (debatably true, more true for model sameness across texts) and AI tends to have more formal, regular punctuation.
+
+**What it can't see:** If chunks are really words or not. Prone to being fooled. Short text all three aren't particularly strong. Unlike the model signal, it reads the whole text (no 400-token limit). Difference in genre can also be stronger than the difference between human and AI (i.e. text message vs. essay). Plain writing with short, even sentences and little punctuation looks AI-like to both metrics.
 
 ### The combining rule
 
 <!-- Write the rule in words, then give the numbers. What happens when the two
      signals disagree? -->
 
-**The rule:**
+**The rule:** I lean hard against false positives (criterion 1). A text is only called AI when there is enough of it to judge *and* both signals agree.
+
+1. **Average** the model score and the style score with equal weight.
+2. **Pull thin evidence toward the middle.** `scoring.evidence_confidence` gives a confidence from 0 to 1, and the score becomes `0.5 + (average − 0.5) × confidence`. Confidence is the product of three factors:
+   - **length:** 0 at 40 words or fewer, rising linearly to 1 at 100 words;
+   - **style coverage:** the share of counted style metrics that could be measured (a single sentence has no spread, so 0.5);
+   - **model coverage:** the model only reads the first 400 tokens, so its half of the evidence counts only for the share it read (`0.5 + 0.5 × share read`).
+   
+   Each factor below 1 adds a warning to the response and the audit log.
+3. **Agreement gate.** A confident label needs both signals on the same side: high-confidence AI needs both ≥ 0.6, and high-confidence human needs both ≤ 0.4. If the score crosses a threshold but the signals disagree, it is clamped 0.01 inside the unsure band, so the label is "unsure" but the score still shows which way it leaned.
+4. **Label** with a wider-than-even unsure band that is shifted toward AI: human at or below 0.35, AI at or above 0.75.
 
 **The numbers:**
 
-**Where it lives:** `scoring.py::combine_signals`
+| Setting | Value | Where |
+|---|---|---|
+| Signal weights (model / style) | 0.5 / 0.5 | `config.py` |
+| Model signal curve (perplexity midpoint / steepness) | 35 / 4 (was 45 / 1.6) | `detector.py::model_signal` |
+| Style curves (midpoint / steepness) | spread 0.70 / 4, punctuation 0.07 / 4 | `stylometry.py::STYLE_CALIBRATION` |
+| Style metric weights | spread 1, punctuation 1, TTR 0 | `stylometry.py::STYLE_WEIGHTS` |
+| Length confidence ramp | 40 → 100 words | `config.py` |
+| Agreement gate (AI floor / human ceiling / margin) | 0.6 / 0.4 / 0.01 | `config.py` |
+| Thresholds (human / AI) | 0.35 / 0.75 | `config.py` |
+
+I made the curves steeper so clear cases land near the ends. That keeps the AI label reachable even with a strict 0.75 threshold.
+
+Results on the bundled samples plus two texts I wrote to test the rule (`plain_human`: a plain, short-sentence personal paragraph; `edited_ai`: an AI-style paragraph rewritten casually). They were identical across repeated runs.
+
+| Text | Words | Model | Style | Average | Confidence | Combined | Label |
+|---|---|---|---|---|---|---|---|
+| clearly_ai | 92 | 0.858 | 0.881 | 0.870 | 0.867 | 0.820 | AI |
+| borderline | 67 | 0.071 | 0.554 | 0.313 | 0.450 | 0.416 | unsure |
+| clearly_human | 94 | 0.173 | 0.176 | 0.174 | 0.900 | 0.207 | human |
+| plain_human (mine) | 64 | 0.843 | 0.969 | 0.906 | 0.400 | 0.662 | unsure |
+| edited_ai (mine) | 57 | 0.047 | 0.263 | 0.155 | 0.283 | 0.402 | unsure |
+
+**Known weakness:** `plain_human` would be a false positive (0.906 before the shrink) because *both* signals read plain writing as AI, so the gate can't help. It is only saved because it is short. A longer plain text would probably still be flagged. The length ramp was also tuned on these short samples, so it needs re-checking against my criterion 1 and 3 texts.
+
+**Where it lives:** `scoring.py::combine_signals` (with `scoring.py::evidence_confidence` supplying the confidence)
 
 <!-- ⚠️ The grader checks your code against that line. If your rule lives
      somewhere else, say where. -->
 
 **A case where my two signals split, and what my rule does with it:**
 
+`samples/borderline.json`, which appears to be a lightly edited version of the `clearly_ai` text (same topic and the same prioritize / cut distractions / take breaks structure, rewritten in a casual voice).
 
+| Signal | Score | Leans |
+|---|---|---|
+| model signal | 0.071 | strongly human |
+| style signal | 0.554 | AI |
+| average (0.5 / 0.5) | 0.313 | human (below 0.35) |
+| after thin-evidence shrink (67 words, confidence 0.45) | 0.416 | unsure |
+
+Why they split:
+- **The model signal reads the words.** Casual edits like "frazzled", "wreck focus", "you're" and British spellings make the next word harder to predict. Its perplexity (66) is even higher than the clearly-human sample's (52), so the model calls it strongly human.
+- **The style signal reads the shape, and the edit didn't change the shape much.** Sentence lengths are still fairly even (spread 0.465, sub-score 0.84 AI). The added em dash and semicolon raise punctuation density (0.090, sub-score 0.27 human), but not enough to outweigh the even sentences.
+
+What the rule does: the plain average (0.313) would have labelled it high-confidence human, because the model signal is so sure. Two parts of the rule stop that:
+- **The shrink:** at 67 words there isn't enough text to trust either signal fully, so the score is pulled to 0.416, inside the unsure band.
+- **The gate:** even with a longer text and no shrink, the gate would block the human label, because the style signal (0.554) is above the 0.4 human ceiling. The score would be clamped to 0.36.
+
+Either way it comes out unsure. That is the outcome I want for a case like this: two methods disagreeing is real uncertainty, and the label should say so instead of picking a side.
 
 ---
 

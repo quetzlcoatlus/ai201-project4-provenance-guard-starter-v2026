@@ -127,8 +127,12 @@ def model_signal(text: str) -> float:
     """
     ppl = perplexity(text)
 
-    midpoint = 45.0    # perplexity that scores 0.5
-    steepness = 1.6    # how sharply the score moves either side of it
+    # Recalibrated in Milestone 4 (was midpoint 45.0, steepness 1.6).
+    # Midpoint sits between clearly_ai (ppl ~22) and clearly_human (ppl ~52);
+    # steeper curve pushes clear cases toward 0 / 1 so a strict AI threshold
+    # (0.75) stays reachable.
+    midpoint = 35.0    # perplexity that scores 0.5
+    steepness = 4.0    # how sharply the score moves either side of it
 
     # Logistic on log-perplexity. Low perplexity -> high AI score.
     score = 1.0 / (1.0 + (ppl / midpoint) ** steepness)

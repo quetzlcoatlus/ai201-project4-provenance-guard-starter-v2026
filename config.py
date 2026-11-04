@@ -72,7 +72,25 @@ WEIGHT_STYLE_SIGNAL = 0.5
 # that decide who pays for it.
 
 HUMAN_THRESHOLD = 0.35
-AI_THRESHOLD = 0.65
+AI_THRESHOLD = 0.75     # raised from 0.65 to lean against false positives
+
+# Agreement gate (scoring.combine_signals). A confident label needs BOTH
+# signals on the same side, not just the average:
+#   high-confidence AI    -> average >= AI_THRESHOLD    AND both >= AGREE_AI_FLOOR
+#   high-confidence human -> average <= HUMAN_THRESHOLD AND both <= AGREE_HUMAN_CEILING
+# If the average reaches a threshold but the gate fails, the score is clamped
+# GATE_MARGIN inside the unsure band, so the label is "unsure" but the score
+# still shows which way it leaned.
+AGREE_AI_FLOOR = 0.6
+AGREE_HUMAN_CEILING = 0.4
+GATE_MARGIN = 0.01
+
+# Thin-evidence shrink (scoring.evidence_confidence). Before the gate, the
+# averaged score is pulled toward 0.5:  score = 0.5 + (average - 0.5) * confidence
+# Length part of confidence: 0 at or below CONFIDENCE_MIN_WORDS, rising linearly
+# to 1 at CONFIDENCE_FULL_WORDS. Tuned on the bundled samples (57–94 words).
+CONFIDENCE_MIN_WORDS = 40
+CONFIDENCE_FULL_WORDS = 100
 
 # ⚠️ One thing that catches people out in Milestone 5. A weighted average can
 # only land between its two inputs — so while `style_signal` is still the stub
