@@ -230,21 +230,39 @@ def submit():
         # Under 3 tokens: too short for the model to score.
         audit.log_rejection(creator_id=creator_id, reason="text_too_short")
         return jsonify({"error": "bad_request", "reason": "text_too_short", "message": str(exc)}), 400
-    # Every request whose `text` is over 400 tokens is still scored, and its response includes a `warnings` entry saying only the first 400 tokens were analyzed.
-
+    # Every request whose `text` is over 400 tokens is still scored; the
+    # truncation warning comes from scoring.evidence_confidence below.
     warnings = []
-    if detector.token_count(text) > config.DETECTOR_MAX_TOKENS:
-        warnings.append(
-            f"Only the first {config.DETECTOR_MAX_TOKENS} tokens were analyzed by the model signal."
-        )
 
-    # Step 4 - log the decision. Content_ID is what /appeal needs later
+    # Step 5 - second signal: the shape of the text
+    import stylometry
+    style_score, style_warnings = stylometry.style_signal(text)
+    warnings.extend(style_warnings)
+
+    # Step 6 - combine. evidence_confidence pulls thin evidence (short text,
+    # unmeasured style metrics, truncation) toward 0.5 before the agreement gate.
+    import scoring
+    evidence, evidence_warnings = scoring.evidence_confidence(text)
+    warnings.extend(evidence_warnings)
+    combined_score = scoring.combine_signals(model_score, style_score, evidence)
+
+    # Step 8 - guess is machine-readable ("ai" / "human" / "unsure") for the
+    # eval tools and criteria; label is the sentence a person reads.
+    guess, label = scoring.score_to_label(combined_score)
+
+    # Step 4 / 7 - log the decision with BOTH signal scores and the combined one.
+    # Content_ID is what /appeal needs later
     content_id = f"c_{uuid.uuid4().hex[:12]}"
     audit.log_decision(
         content_id=content_id,
         creator_id=creator_id,
+        guess=guess,
         model_score=model_score,
+        style_score=style_score,
+        combined_score=combined_score,
+        label=label,
         status="decided",
+        evidence_confidence=evidence,
         warnings=warnings,
     )
 
@@ -252,11 +270,13 @@ def submit():
     return jsonify({
         "content_id": content_id,
         "creator_id": creator_id,
-        "guess": "unsure",
-        "confidence": model_score,
-        "label": "not built yet",
+        "guess": guess,
+        "confidence": combined_score,
+        "label": label,
         "model_score": model_score,
-        "style_score": None,
+        "style_score": style_score,
+        "combined_score": combined_score,
+        "evidence_confidence": evidence,
         "warnings": warnings,
     }), 200
 
@@ -281,14 +301,71 @@ def appeal():
     to the person on the other end. It's the only thing standing between a
     wrong accusation and nothing at all.
     """
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        payload = {}
+    content_id = payload.get("content_id")
+    reasoning = payload.get("reasoning")
+    caller_id = payload.get("creator_id", "unknown")
 
-    # TODO: delete this and build the route.
+    # Bad input -> 400, logged, never a 500 (same shape as /submit).
+    reason = None
+    if not isinstance(content_id, str) or not content_id.strip():
+        reason, message = "missing_content_id", "\"content_id\" is missing, empty, or not a string."
+    elif not isinstance(reasoning, str) or not reasoning.strip():
+        reason, message = "missing_reasoning", "\"reasoning\" is missing, empty, or not a string."
+    if reason:
+        audit.log_rejection(creator_id=caller_id, reason=reason, route="appeal")
+        return jsonify({"error": "bad_request", "reason": reason, "message": message}), 400
+
+    assert isinstance(content_id, str) and isinstance(reasoning, str)
+    content_id = content_id.strip()
+    reasoning = reasoning.strip()
+
+    # 1. Does it exist? Look for the original DECISION, not just any entry:
+    # rejected entries also carry content_id, so a repeat appeal on a made-up
+    # id would otherwise "find" its own earlier rejection.
+    entries = audit.entries_for(content_id)
+    decisions = [e for e in entries if "event" not in e]
+    if not decisions:
+        audit.log_rejection(
+            creator_id=caller_id, reason="unknown_content_id",
+            route="appeal", content_id=content_id,
+        )
+        return jsonify({
+            "error": "not_found",
+            "reason": "unknown_content_id",
+            "message": f"No submission found with content_id \"{content_id}\".",
+        }), 404
+
+    # The appeal is recorded against the ORIGINAL submitter, not whoever sent it.
+    original = decisions[0]
+    creator_id = original.get("creator_id", "unknown")
+
+    # Current status = the latest non-rejected entry (decision or appeal).
+    status_entries = [e for e in entries if e.get("event") != "rejected"]
+    if status_entries[-1].get("status") == "under_review":
+        audit.log_rejection(
+            creator_id=creator_id, reason="already_under_review",
+            route="appeal", content_id=content_id,
+        )
+        return jsonify({
+            "error": "conflict",
+            "reason": "already_under_review",
+            "message": f"Submission \"{content_id}\" has already been appealed and is under review.",
+        }), 409
+
+    # 2. Record the appeal: moves the item to under_review.
+    entry = audit.log_appeal(content_id=content_id, creator_id=creator_id, reasoning=reasoning)
+
+    # 3. Confirm to the writer.
     return jsonify({
-        "error": "not_implemented",
-        "message": "POST /appeal isn't built yet — see the TODO in app.py.",
-        "you_sent": payload,
-    }), 501
+        "content_id": content_id,
+        "creator_id": creator_id,
+        "status": entry["status"],
+        "original_guess": original.get("guess"),
+        "message": "Thanks — your appeal has been recorded and a person will review it.",
+    }), 200
 
 
 # ── Already works ─────────────────────────────────────────────────────────────

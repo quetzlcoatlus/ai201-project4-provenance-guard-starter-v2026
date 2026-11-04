@@ -71,7 +71,8 @@ def evidence_confidence(text: str) -> tuple[float, list[str]]:
     model_coverage = config.WEIGHT_STYLE_SIGNAL + config.WEIGHT_MODEL_SIGNAL * read_share
     if model_coverage < 1.0:
         warnings.append(
-            f"Model signal read {read_share:.0%} of the text: score pulled "
+            f"Only the first {config.DETECTOR_MAX_TOKENS} tokens were analyzed by "
+            f"the model signal ({read_share:.0%} of the text): score pulled "
             f"toward 'unsure' (model coverage {model_coverage:.2f})."
         )
 
@@ -164,12 +165,18 @@ def score_to_label(score: float) -> tuple[str, str]:
     think if they got it on their own work. That question is the whole
     milestone.
     """
-    # TODO: replace this — thresholds are in config.py
+    # Thresholds are in config.py. Wording matches the README's Label Variants table.
     if score >= config.AI_THRESHOLD:
-        return "ai", "PLACEHOLDER — write the high-confidence AI label."
+        return "ai", (
+            "Our checks say this reads as likely AI-generated. "
+            "If you wrote this yourself, you can ask for a review."
+        )
     if score <= config.HUMAN_THRESHOLD:
-        return "human", "PLACEHOLDER — write the high-confidence human label."
-    return "unsure", "PLACEHOLDER — write the unsure label."
+        return "human", "We think this was probably written by a person."
+    return "unsure", (
+        "We can't say whether a person or AI wrote this. Our checks gave mixed "
+        "results, which is common and doesn't mean anything is wrong."
+    )
 
 
 def label_ranges() -> list[tuple[str, str]]:

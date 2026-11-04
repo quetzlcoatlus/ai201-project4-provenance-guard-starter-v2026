@@ -152,16 +152,21 @@ Either way it comes out unsure. That is the outcome I want for a case like this:
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human |  |  |
-| unsure |  |  |
-| high-confidence AI |  |  |
+| high-confidence human | 0.00 – 0.35 (inclusive) | We think this was probably written by a person. |
+| unsure | above 0.35 and below 0.75 | We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong. |
+| high-confidence AI | 0.75 – 1.00 (inclusive) | Our checks say this reads as likely AI-generated. If you wrote this yourself, you can ask for a review. |
 
 **Why I worded the "unsure" one this way:**
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
 
+My first draft was "We're not sure if this is written by a person, but we don't think it was written by AI." It had three problems:
+- **It contradicted itself.** If it's not a person and not AI, who wrote it?
+- **The doubt landed on the writer.** The first thing it questioned was whether a person wrote it.
+- **It overclaimed.** "We don't think it was written by AI" isn't true across the whole band. Scores up to 0.749 land here, including texts that lean AI, like my plain-writing test at 0.662.
 
+The final wording makes the *checks* the thing that's uncertain, not the writer. It says why ("mixed results") and that this is common, because most texts land in this band when they're short or the two signals disagree, which is a limit of the tool. It ends by saying nothing is wrong, so a writer who wrote every word isn't left wondering whether they've been flagged. It makes no claim in either direction, so it stays honest whether the score is 0.36 or 0.74.
 
 ---
 
@@ -184,15 +189,19 @@ $ curl -X POST http://127.0.0.1:5000/submit \
 ```
 
 ```json
-{
-  "confidence": 0.7544,
-  "content_id": "c_bfbd00800f24",
-  "creator_id": "demo_instructor",                         
-  "guess": "unsure",
-  "label": "not built yet",
-  "model_score": 0.7544,
-  "style_score": null,
-  "warnings": []
+{                                                                                                                                                    
+  "combined_score": 0.8204,                                                                                                                          
+  "confidence": 0.8204,                                                                                                                              
+  "content_id": "c_6c8a6475a60e",                          
+  "creator_id": "demo_instructor",
+  "evidence_confidence": 0.8667,
+  "guess": "ai",
+  "label": "Our checks say this reads as likely AI-generated. If you wrote this yourself, you can ask for a review.",
+  "model_score": 0.8582,
+  "style_score": 0.8811,
+  "warnings": [
+    "Short text (92 words): score pulled toward 'unsure' (length confidence 0.87; full confidence at 100 words)."
+  ]
 }
 ```
 
@@ -205,7 +214,23 @@ $ curl -X POST http://127.0.0.1:5000/appeal \
 ```
 
 ```json
+{                                                                                                                                                    
+  "content_id": "c_6c8a6475a60e",                                                                                                                    
+  "creator_id": "demo_instructor",                                                                                                                   
+  "message": "Thanks \u2014 your appeal has been recorded and a person will review it.",
+  "original_guess": "ai",
+  "status": "under_review"
+}
+```
 
+**Second Appeal**
+
+```json
+{
+  "error": "conflict",
+  "message": "Submission \"c_6c8a6475a60e\" has already been appealed and is under review.",
+  "reason": "already_under_review"
+}
 ```
 
 **What the log shows afterwards**
@@ -216,31 +241,39 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 ```json
 {                                                                                                                                                    
-  "count": 2,                                                                                                                                        
-  "entries": 
-  [
-    {
-      "combined_score": null,
-      "content_id": "c_2b0714baf153",
+  "count": 3,                                                                                                                                        
+  "entries": [                                                                                                                                       
+    {                                                                                                                                                
+      "combined_score": 0.8204,                            
+      "content_id": "c_6c8a6475a60e",
       "creator_id": "demo_instructor",
-      "guess": null,
-      "label": null,
-      "model_score": 0.7544,
-      "status": "undecided",
-      "style_score": null,
-      "timestamp": "2026-10-29T00:54:30+00:00"
+      "evidence_confidence": 0.8667,
+      "guess": "ai",
+      "label": "Our checks say this reads as likely AI-generated. If you wrote this yourself, you can ask for a review.",
+      "model_score": 0.8582,
+      "status": "decided",
+      "style_score": 0.8811,
+      "timestamp": "2026-11-04T21:37:21+00:00",
+      "warnings": [
+        "Short text (92 words): score pulled toward 'unsure' (length confidence 0.87; full confidence at 100 words)."
+      ]
     },
     {
-      "combined_score": null,
-      "content_id": "c_bfbd00800f24",
+      "content_id": "c_6c8a6475a60e",
       "creator_id": "demo_instructor",
-      "guess": null,
-      "label": null,
-      "model_score": 0.7544,
-      "status": "decided",
-      "style_score": null,
-      "timestamp": "2026-11-04T19:22:51+00:00",
-      "warnings": []
+      "event": "appeal",
+      "reasoning": "I wrote this myself as a short guide on time management. It is plain and structured because it was meant as a quick checklist for my team, not because it was generated.",
+      "status": "under_review",
+      "timestamp": "2026-11-04T21:41:43+00:00"
+    },
+    {
+      "content_id": "c_6c8a6475a60e",
+      "creator_id": "demo_instructor",
+      "event": "rejected",
+      "reason": "already_under_review",
+      "route": "appeal",
+      "status": "rejected",
+      "timestamp": "2026-11-04T21:42:05+00:00"
     }
   ]
 }
@@ -250,17 +283,19 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 ## How I Used AI
 
-**Moment 1**
+I used AI throughout: to brainstorm and write my acceptance criteria, for the first version of `/submit` in `app.py`, and for the scoring and labels. These are the two moments that shaped the service most.
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+**Moment 1: Weighting the combining rule against false positives**
 
-**Moment 2**
+- *What I asked for:* Ideas for leaning hard against false positives (criterion 1). My own first idea was to raise the AI threshold to something like 0.875, but I suspected that would make the AI label unreachable (criterion 3).
+- *What came back:* Confirmation that a high threshold alone would break criterion 3, because my scores were bunched in the middle (clear AI 0.674, clear human 0.443). It suggested five options: steeper calibration curves to spread the scores out, an agreement gate where both signals must agree before an AI label, pulling thin evidence toward 0.5, letting the style signal argue for human more than for AI, and a modest threshold shift. It recommended steeper curves plus the gate with a 0.75 threshold. Simulating that on my samples showed two problems: `borderline` would be labelled human, and a plain human-written test paragraph would still be labelled AI.
+- *What I changed:* I made the decisions at each step. I chose a **symmetric** gate, so the human label also needs both signals to agree, because that is what sends `borderline` to unsure. I chose to **drop** TTR (weight 0) rather than flip its direction, even though flipping scored slightly better on the plain paragraph, because the flipped result only cleared the threshold by 0.002. I added the thin-evidence shrink as well. I picked the 40→100 word ramp, included the truncation and missing-metric factors, and left out the signal-disagreement factor because it overlaps with the gate. The README records that the plain paragraph is only saved because it is short.
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+**Moment 2: The wording of the "unsure" label**
+
+- *What I asked for:* Criticism of my draft unsure label, "We're not sure if this is written by a person, but we don't think it was written by AI.", read as if I had written every word myself.
+- *What came back:* Five problems. The label contradicted itself (not a person, not AI). It cast doubt on the writer first. It claimed "not AI" across a band that includes AI-leaning scores. It gave no reason. It used "is written" where "was written" was meant. Three rewrites followed, each making the *checks* the uncertain thing. It also flagged my AI label as too blunt for the one label that will reach real writers by mistake, and suggested pointing to the appeal.
+- *What I changed:* I picked the third rewrite for unsure. I rewrote the AI label myself to soften it and add the appeal path: "Our checks say this reads as likely AI-generated. If you wrote this yourself, you can ask for a review." I kept my human label unchanged.
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
