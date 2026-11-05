@@ -338,12 +338,151 @@ can look like one. --> A caller counts as one creator_id associated with an acco
 
 ```json
 
+{
+  "id": "EV01",
+  "status": 200,
+  "content_id": "c_161aea20893f",
+  "creator_id": "attacker_EV01",
+  "guess": "unsure",
+  "confidence": 0.4904,
+  "model_score": 0.0061,
+  "style_score": 0.9683,
+  "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+  "error": null,
+  "verdict": "BROKE"
+}
+
+{
+  "id": "EV02",
+  "status": 200,
+  "content_id": "c_42d5f8cde735",
+  "creator_id": "attacker_EV02",
+  "guess": "unsure",
+  "confidence": 0.5518,
+  "model_score": 0.4873,
+  "style_score": 0.6345,
+  "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+  "error": null,
+  "verdict": "BROKE"
+}
+
+{
+  "id": "EV04",
+  "status": 200,
+  "content_id": "c_491cd68729bc",
+  "creator_id": "attacker_EV04",
+  "guess": "unsure",
+  "confidence": 0.6921,
+  "model_score": 0.532,
+  "style_score": 0.9691,
+  "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+  "error": null,
+  "verdict": "BROKE"
+}
+
+{
+  "id": "EV06",
+  "status": 200,
+  "content_id": "c_889fe1ddf521",
+  "creator_id": "attacker_EV06",
+  "guess": "unsure",
+  "confidence": 0.4843,
+  "model_score": 0.4321,
+  "style_score": 0.5316,
+  "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+  "error": null,
+  "verdict": "BROKE"
+}
+
+{
+  "id": "EV07",
+  "status": 200,
+  "content_id": "c_db73536e3993",
+  "creator_id": "attacker_EV07",
+  "guess": "unsure",
+  "confidence": 0.4339,
+  "model_score": 0.4663,
+  "style_score": 0.2554,
+  "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+  "error": null,
+  "verdict": "BROKE"
+}
+
+{
+  "id": "EV08",
+  "status": 200,
+  "content_id": "c_6c7facb07c55",
+  "creator_id": "attacker_EV08",
+  "guess": "unsure",
+  "confidence": 0.5,
+  "model_score": 0.0215,
+  "style_score": 0.987,
+  "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+  "error": null,
+  "verdict": "BROKE"
+}
+
+{
+  "id": "FP03",
+  "status": 200,
+  "content_id": "c_24a6d2401d62",
+  "creator_id": "attacker_FP03",
+  "guess": "ai",
+  "confidence": 0.8239,
+  "model_score": 0.927,
+  "style_score": 0.977,
+  "label": "Our checks say this reads as likely AI-generated. If you wrote this yourself, you can ask for a review.",
+  "error": null,
+  "verdict": "BROKE"
+}
+
+{
+  "id": "MF03",
+  "status": 200,
+  "content_id": "c_f5abb537d002",
+  "creator_id": "attacker_MF03",
+  "guess": "unsure",
+  "confidence": 0.5,
+  "model_score": 0.0,
+  "style_score": 0.75,
+  "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+  "error": null,
+  "verdict": "BROKE"
+}
+
+{
+  "id": "MF05",
+  "status": 200,
+  "content_id": "c_b28ed26f2218",
+  "creator_id": "attacker_MF05",
+  "guess": "unsure",
+  "confidence": 0.5,
+  "model_score": 1.0,
+  "style_score": 0.75,
+  "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+  "error": null,
+  "verdict": "BROKE"
+}
+
+{
+  "id": "FL01_06",
+  "status": 429,
+  "content_id": null,
+  "creator_id": "attacker_flood",
+  "guess": null,
+  "confidence": null,
+  "model_score": null,
+  "style_score": null,
+  "label": null,
+  "error": null,
+  "verdict": "BROKE"
+}
 ```
 
 **The single worst outcome** — the one I'd least want to explain to a writer
 whose work got caught by it:
 
-
+FP03 being marked as AI had the worst outcome in my opinion. Non-native English speaker writing carefully. Could come off extremely discouraging, especially while someone is trying to learn something as time consuming/difficult as a language. I'd want to reassure them that it's the style and model predictability and not a statement about them or their ability.
 
 ---
 

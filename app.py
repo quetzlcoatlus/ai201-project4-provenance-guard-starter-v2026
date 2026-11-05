@@ -326,6 +326,7 @@ def appeal():
     # rejected entries also carry content_id, so a repeat appeal on a made-up
     # id would otherwise "find" its own earlier rejection.
     entries = audit.entries_for(content_id)
+    # Only original decisions count. Appeals and rejections have an event field so they're filtered out.
     decisions = [e for e in entries if "event" not in e]
     if not decisions:
         audit.log_rejection(
