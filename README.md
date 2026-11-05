@@ -303,9 +303,9 @@ I used AI throughout: to brainstorm and write my acceptance criteria, for the fi
 
 ## Rate Limiting
 
-**My limits:** ___ per minute, ___ per day
+**My limits:** 5 per minute, 50 per day
 
-**Why those numbers and not others:**
+**Why those numbers and not others:** A real writer probably wouldn't do more than 50 submissions a day. Maybe 5 a minute is reasonable if they make a mistake etc. A script sending a ton would go past this.
 <!-- Think about two people: a real writer submitting their own work a few
      times an hour, and a script sending a thousand variations to map your
      thresholds. Your numbers have to be liveable for the first and hostile to
@@ -313,14 +313,14 @@ I used AI throughout: to brainstorm and write my acceptance criteria, for the fi
 
 **What a caller counts as:** <!-- per address, or per creator_id? They fail
 differently — one script can look like a thousand callers, and one household
-can look like one. -->
+can look like one. --> A caller counts as one creator_id associated with an account. This gets around being rate limited by address but need to be wary that someone can use a script to manipulate creator_id.
 
 **The run of status codes when I pushed past it:**
 
 <!-- python run_attacks.py --flood 15 -->
 
 ```
-
+200 200 200 200 200 429 429 429 429 429 429 429 429 429 429
 ```
 
 ---
