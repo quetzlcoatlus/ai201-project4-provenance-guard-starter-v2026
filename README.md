@@ -724,13 +724,118 @@ The route only checks that `text` is a non-empty string, then hands it to the si
 
 <!-- Same format. `run_attacks.py --label after` -->
 
+From `results/attack_run_2026-11-08_1835_after.md`, produced by `run_attacks.py::main`. Verdicts use the same rule as the before run: an evasion HELD only if it was labelled AI, a false-positive input HELD unless it was labelled AI.
 
+| ID | Family | Targeting | Status | Content ID | Guess | Score | Verdict |
+|---|---|---|---|---|---|---|---|
+| EV01 | evasion | signal two: typos raise word variety | 200 | `c_05025a0c5c1f` | unsure | 0.360 | BROKE |
+| EV02 | evasion | signal two: broken-up sentences raise length spread | 200 | `c_256a8bcef0c0` | unsure | 0.359 | BROKE |
+| EV03 | evasion | signal two: a pasted quotation changes the shape | 200 | `c_f9dbd92bb3c5` | unsure | 0.595 | BROKE |
+| EV04 | evasion | signal one: unusual words raise perplexity | 200 | `c_ebf301d3773e` | unsure | 0.523 | BROKE |
+| EV05 | evasion | both signals: heavy human editing pass | 200 | `c_acd9979a748e` | unsure | 0.360 | BROKE |
+| EV06 | evasion | signal two: one very long sentence and one very short | 200 | `c_ec43b39f2d31` | unsure | 0.360 | BROKE |
+| EV07 | evasion | signal two: padding with punctuation | 200 | `c_4dd65d62d815` | unsure | 0.550 | BROKE |
+| EV08 | evasion | signal one: text below the token window | 200 | `c_6c3773bbed7e` | unsure | 0.500 | BROKE |
+| EV09 | evasion | both: AI text with a human opening paragraph bolted on | 200 | `c_9f4af97a6637` | unsure | 0.626 | BROKE |
+| EV10 | evasion | signal two: repeated stanza structure | 200 | `c_7f0221344451` | unsure | 0.644 | BROKE |
+| FP01 | false_positive | plain, clear human writing with no flourishes | 200 | `c_ff6a03886059` | unsure | 0.487 | HELD |
+| FP02 | false_positive | human writing in a formal register | 200 | `c_6bfc5453ab9b` | unsure | 0.598 | HELD |
+| FP03 | false_positive | a non-native English speaker writing carefully | 200 | `c_be42fccc38ff` | unsure | 0.645 | HELD |
+| FP04 | false_positive | a student essay written to a rubric | 200 | `c_cb7481bf75e4` | unsure | 0.598 | HELD |
+| FP05 | false_positive | technical documentation written by a person | 200 | `c_b601460a2a69` | unsure | 0.606 | HELD |
+| FP06 | false_positive | a person imitating a formal template | 200 | `c_69ad615075d6` | unsure | 0.574 | HELD |
+| FP07 | false_positive | human writing that repeats a phrase deliberately | 200 | `c_7c55a6ef37f7` | unsure | 0.537 | HELD |
+| FP08 | false_positive | very short genuine human submission | 200 | `c_ce6a057228a1` | unsure | 0.500 | HELD |
+| PI01 | prompt_injection | instruction to ignore the check | 200 | `c_f977d3b52f32` | unsure | 0.478 | HELD |
+| PI02 | prompt_injection | instruction disguised as a system message | 200 | `c_3ed1d6e40473` | unsure | 0.474 | HELD |
+| PI03 | prompt_injection | instruction wrapped in the writer's voice | 200 | `c_58fc6fcd3755` | unsure | 0.512 | HELD |
+| PI04 | prompt_injection | attempt to make the label text hostile | 200 | `c_e368cc5ce568` | unsure | 0.502 | HELD |
+| PI05 | prompt_injection | attempt to inject into the audit log | 200 | `c_1340590c784a` | unsure | 0.500 | HELD |
+| PI06 | prompt_injection | instruction plus real human text | 200 | `c_3ad4f73843a4` | unsure | 0.414 | HELD |
+| MF01 | malformed | text is only whitespace | 400 | `—` | — | — | HELD |
+| MF02 | malformed | text is a single character | 400 | `—` | — | — | HELD |
+| MF03 | malformed | text is control characters | 200 | `c_724eed157910` | unsure | 0.500 | BROKE |
+| MF04 | malformed | text is only punctuation | 200 | `c_ce476a3dd126` | unsure | 0.500 | BROKE |
+| MF05 | malformed | text is a very long single word | 200 | `c_6c8e0db8acf3` | unsure | 0.500 | BROKE |
+| MF06 | malformed | text is emoji only | 200 | `c_654263ef9f03` | unsure | 0.500 | BROKE |
+| MF07 | malformed | text is right-to-left script | 200 | `c_f072995d4a2d` | unsure | 0.500 | BROKE |
+| MF08 | malformed | text is 60,000 characters | 200 | `c_69c219789a57` | unsure | 0.614 | BROKE |
+| RQ01 | malformed | no text field at all | 400 | `—` | — | — | HELD |
+| RQ02 | malformed | no creator_id | 200 | `c_63d8b12d92fa` | unsure | 0.500 | BROKE |
+| RQ03 | malformed | text is a number | 400 | `—` | — | — | HELD |
+| RQ04 | malformed | text is a list | 400 | `—` | — | — | HELD |
+| RQ05 | malformed | text is null | 400 | `—` | — | — | HELD |
+| RQ06 | malformed | creator_id is an object | 200 | `c_22a13cb2f2c6` | unsure | 0.500 | BROKE |
+| RQ07 | malformed | body is a JSON array, not an object | 500 | `—` | — | — | BROKE |
+| RQ08 | malformed | body is unparseable JSON | 400 | `—` | — | — | HELD |
+| RQ09 | malformed | body is empty | 400 | `—` | — | — | HELD |
+| RQ10 | malformed | body is form-encoded, not JSON | 429 | `—` | — | — | BROKE |
+| RQ11 | malformed | body is JSON claiming to be plain text | 429 | `—` | — | — | BROKE |
+| RQ12 | malformed | deeply nested JSON | 400 | `—` | — | — | HELD |
+| FL01_01 | flood_same_creator | 20 rapid submissions from one creator | 200 | `c_2c3895f19cab` | unsure | 0.500 | HELD |
+| FL01_02 | flood_same_creator | 20 rapid submissions from one creator | 200 | `c_e6d7c9cc66f1` | unsure | 0.500 | HELD |
+| FL01_03 | flood_same_creator | 20 rapid submissions from one creator | 200 | `c_bb0eadbb5238` | unsure | 0.500 | HELD |
+| FL01_04 | flood_same_creator | 20 rapid submissions from one creator | 200 | `c_1d3032953c90` | unsure | 0.500 | HELD |
+| FL01_05 | flood_same_creator | 20 rapid submissions from one creator | 200 | `c_8939f47b08ec` | unsure | 0.500 | HELD |
+| FL01_06 | flood_same_creator | 20 rapid submissions from one creator | 429 | `—` | — | — | HELD |
+| FL01_07 | flood_same_creator | 20 rapid submissions from one creator | 429 | `—` | — | — | HELD |
+| FL01_08 | flood_same_creator | 20 rapid submissions from one creator | 429 | `—` | — | — | HELD |
+| FL01_09 | flood_same_creator | 20 rapid submissions from one creator | 429 | `—` | — | — | HELD |
+| FL01_10 | flood_same_creator | 20 rapid submissions from one creator | 429 | `—` | — | — | HELD |
+| FL01_11 | flood_same_creator | 20 rapid submissions from one creator | 429 | `—` | — | — | HELD |
+| FL01_12 | flood_same_creator | 20 rapid submissions from one creator | 429 | `—` | — | — | HELD |
+
+**Run log after the change.** From `results/run_2026-11-08_1833_after.md`, produced by `run_eval.py::main`. As before, all three trials returned identical scores.
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. My own writing flagged as AI (`guess: "ai"`) | 0 of 5 | 0/5 | 0/5 | 0/5 | MET |
+| 2. Appeal path: 5 appeals logged as `under_review`, repeat gets 409, unknown id gets 404, refusals logged | 7 of 7 checks | 7/7 | 7/7 | 7/7 | MET |
+| 3. Pre-labelled inputs reach their intended label | 9 of 9 | 6/9 | 6/9 | 6/9 | MISSED |
+| 4. Lowest clearly-AI combined score minus highest clearly-human combined score | ≥ 0.30 | 0.097 | 0.097 | 0.097 | MISSED |
+| 5. Bad input: 6 malformed bodies get a 400 naming the problem, long text gets a 200 with a truncation warning | 7 of 7 | 7/7 | 7/7 | 7/7 | MET |
 
 **Did it help, and how do I know:**
 
 <!-- Widening the unsure band usually fixes one problem and creates another.
      Reporting that trade honestly is worth full credit. -->
 
+Only partly. On my own criterion texts it helped: both misses moved the right way, though neither is met, and it created one new false positive. On the attack set it made AI detection worse. The evidence is below.
+
+| Text | Before | After |
+|---|---|---|
+| AI: coffee | unsure 0.740 (style 0.58) | **ai 0.929** (style 0.92) |
+| AI: time management | unsure 0.736 (style 0.57) | **ai 0.902** (style 0.91) |
+| AI: ocean | unsure 0.740 (style 0.58) | **ai 0.897** (style 0.81) |
+| My writing (5 texts), style score | 0.79–0.85 | 0.38–0.61 |
+| My writing (5 texts), combined | 0.544–0.600 | 0.317–0.497 |
+| Human: transphobia post | unsure 0.559 | unsure 0.360 |
+| Human: "world is in chaos" | ai 0.786 | ai 0.775 |
+| Human: DSA program | unsure 0.736 | **ai 0.800** |
+
+**What it fixed.** Diagnosis 1 was right. With punctuation pointing the right way, the AI texts' style scores rose from 0.57–0.58 to 0.81–0.92. They now clear the gate's 0.6 floor, so the 0.74 clamp is gone and all three reach high-confidence AI. Criterion 3 went from 3/9 to 6/9, and criterion 4's gap went from −0.051 to +0.097. Criterion 1 still holds and has more room: my writing's combined scores dropped from 0.544–0.600 to 0.317–0.497, a long way from the 0.75 AI line. My dream post now even reaches high-confidence human (0.317).
+
+**What it broke.** The DSA text was unsure before and is now labelled AI at 0.800. It's formal and comma-heavy (0.080 marks per word), and its model score was already 0.88. Before the change, punctuation was the one thing keeping its style score under 0.6. Flipping punctuation removed that and turned it into an accusation. "World is in chaos" stays AI (0.775). So human texts labelled AI went from 1 of 3 to 2 of 3. This is diagnosis 2 getting worse: on formal human prose both signals now agree on AI. The fix traded missed AI text for wrong accusations of formal human writers, which is the costly direction my criteria were written to avoid.
+
+**What's still missing.** No clearly-human text reaches high-confidence human, so criterion 3 is still at 6/9. The transphobia post (model 0.22, style 0.43) would average 0.323, inside the human band. But its style score is above the gate's 0.4 human ceiling, so the gate clamps it to 0.36, missing by 0.026. Criterion 4's gap (0.097) is still short of 0.30, because the two formal human texts (0.775, 0.800) now sit almost level with the lowest AI text (0.897).
+
+**What the attack set showed.** The attack run reversed the criteria result. Every one of the 56 attacks now comes back unsure, rejected or rate-limited, and nothing is labelled AI.
+
+| Family | Broke before | Broke after |
+|---|---|---|
+| Evasion | 7 of 10 | **10 of 10** |
+| False positive | 1 of 8 (FP03) | **0 of 8** |
+| Prompt injection | 0 of 6 | 0 of 6 |
+| Malformed / request | 11 of 20 | 11 of 20 (unchanged, not touched by this fix) |
+| Flood | 0 of 12 | 0 of 12 |
+
+- **The three evasions that held now break.** EV03, EV09 and EV10 were labelled AI before. Their style scores fell from 0.84–0.95 to 0.45–0.52. Their model scores didn't change (0.67–1.00), so the style signal dropping below the gate's 0.6 floor clamped them back to unsure. The attack set's AI texts use sparse punctuation, like the bundled sample I first calibrated on. My criterion AI texts use heavy punctuation. Whichever direction I pick, one of the two sets reads the wrong way.
+- **EV07 (punctuation padding) still breaks, but now through signal one.** Padding raises the punctuation sub-score, so style rose from 0.26 to 0.74. But the model scored it only 0.47, so the gate still blocks the AI label. The flip closed the punctuation hole; the gate's one-signal veto (diagnosis 3) is what lets it through now.
+- **FP03 is fixed, but not because of good evidence.** The non-native writer dropped from AI (0.824) to unsure (0.645): its style score fell from 0.98 to 0.48, while its model score stayed at 0.93. The same move that cleared FP03 also cleared EV03, EV09 and EV10. The service isn't telling careful human writing from AI any better than before. The style signal just stopped calling either of them AI.
+
+So the real finding is that **punctuation density has no stable direction**. It depends on where the text comes from: the bundled samples and the attack set's AI texts are sparse, while my criterion AI texts are comma-heavy. Flipping it traded one set's failures for the other's. A fix that holds on both would need to weight punctuation 0, the way I already handle TTR. That would leave sentence-length spread as the only style measure, so the gate would depend on spread alone.
+
+**How I know.** Criteria: same scenarios, same three trials, `results/run_2026-11-08_1819_before.md` vs `results/run_2026-11-08_1833_after.md`. Attacks: the same 56 inputs, `results/attack_run_2026-11-04_1803.md` vs `results/attack_run_2026-11-08_1835_after.md`. The model scores are identical across each pair of runs. So every difference above comes from the style signal, which is the one thing I changed.
 
 
 ---
