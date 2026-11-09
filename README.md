@@ -492,17 +492,155 @@ FP03 being marked as AI had the worst outcome in my opinion. Non-native English 
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |
+| 1. My own writing flagged as AI (`guess: "ai"`) | 0 of 5 | 0/5 | 0/5 | 0/5 | MET |
+| 2. Appeal path: 5 appeals logged as `under_review`, repeat gets 409, unknown id gets 404, refusals logged | 7 of 7 checks | 7/7 | 7/7 | 7/7 | MET |
+| 3. Pre-labelled inputs reach their intended label | 9 of 9 | 3/9 | 3/9 | 3/9 | MISSED |
+| 4. Lowest clearly-AI combined score minus highest clearly-human combined score | ≥ 0.30 | −0.051 | −0.051 | −0.051 | MISSED |
+| 5. Bad input: 6 malformed bodies get a 400 naming the problem, long text gets a 200 with a truncation warning | 7 of 7 | 7/7 | 7/7 | 7/7 | MET |
 
 **Real output from one trial**, pasted as text, naming the file and function
 that produced it:
 
-```json
+`results/run_2026-11-08_1819_before.md`, produced by `run_eval.py::main` (service: `app.py::submit`, scoring: `scoring.py::combine_signals`). Criterion 3, label coverage, trial 1. Texts in order: 3 clearly AI, 3 borderline, 3 clearly human.
 
+```json
+[
+  {
+    "status": 200,
+    "content_id": "c_220e33fab2f9",
+    "guess": "unsure",
+    "confidence": 0.74,
+    "combined_score": 0.74,
+    "model_score": 0.9405,
+    "style_score": 0.5816,
+    "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+    "warnings": [],
+    "error": null,
+    "reason": null,
+    "message": null,
+    "sent": "Coffee is more than just a beverage; it is a rich tapestry of culture,"
+  },
+  {
+    "status": 200,
+    "content_id": "c_67a2eb6904ff",
+    "guess": "unsure",
+    "confidence": 0.7355,
+    "combined_score": 0.7355,
+    "model_score": 0.8976,
+    "style_score": 0.5735,
+    "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+    "warnings": [],
+    "error": null,
+    "reason": null,
+    "message": null,
+    "sent": "Time management is a crucial skill that can significantly enhance both"
+  },
+  {
+    "status": 200,
+    "content_id": "c_19b88eba6f7e",
+    "guess": "unsure",
+    "confidence": 0.74,
+    "combined_score": 0.74,
+    "model_score": 0.9872,
+    "style_score": 0.5804,
+    "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+    "warnings": [],
+    "error": null,
+    "reason": null,
+    "message": null,
+    "sent": "The ocean is a vast and mysterious realm that plays a vital role in su"
+  },
+  {
+    "status": 200,
+    "content_id": "c_efff6a3b841c",
+    "guess": "unsure",
+    "confidence": 0.5892,
+    "combined_score": 0.5892,
+    "model_score": 0.3858,
+    "style_score": 0.7927,
+    "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+    "warnings": [],
+    "error": null,
+    "reason": null,
+    "message": null,
+    "sent": "I apparently convinced someone to rethink their transphobia. A few day"
+  },
+  {
+    "status": 200,
+    "content_id": "c_7dc170ab1841",
+    "guess": "unsure",
+    "confidence": 0.572,
+    "combined_score": 0.572,
+    "model_score": 0.301,
+    "style_score": 0.843,
+    "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+    "warnings": [],
+    "error": null,
+    "reason": null,
+    "message": null,
+    "sent": "Last night I dreamed I was in a plane crash, or at least I think I was"
+  },
+  {
+    "status": 200,
+    "content_id": "c_25702169117c",
+    "guess": "unsure",
+    "confidence": 0.6001,
+    "combined_score": 0.6001,
+    "model_score": 0.4116,
+    "style_score": 0.7886,
+    "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+    "warnings": [],
+    "error": null,
+    "reason": null,
+    "message": null,
+    "sent": "Persona is probably my favorite game series that I've ever played. Wha"
+  },
+  {
+    "status": 200,
+    "content_id": "c_3a710eb1677e",
+    "guess": "unsure",
+    "confidence": 0.5585,
+    "combined_score": 0.5585,
+    "model_score": 0.2202,
+    "style_score": 0.8968,
+    "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+    "warnings": [],
+    "error": null,
+    "reason": null,
+    "message": null,
+    "sent": "Convinced a guy to stop being transphobic apparently. Other day he was"
+  },
+  {
+    "status": 200,
+    "content_id": "c_ef436befb2fd",
+    "guess": "ai",
+    "confidence": 0.7864,
+    "combined_score": 0.7864,
+    "model_score": 0.8177,
+    "style_score": 0.7552,
+    "label": "Our checks say this reads as likely AI-generated. If you wrote this yourself, you can ask for a review.",
+    "warnings": [],
+    "error": null,
+    "reason": null,
+    "message": null,
+    "sent": "The world is in chaos, but for the bosses, it's all going according to"
+  },
+  {
+    "status": 200,
+    "content_id": "c_25257817d63d",
+    "guess": "unsure",
+    "confidence": 0.7356,
+    "combined_score": 0.7356,
+    "model_score": 0.8763,
+    "style_score": 0.5949,
+    "label": "We can't say whether a person or AI wrote this. Our checks gave mixed results, which is common and doesn't mean anything is wrong.",
+    "warnings": [],
+    "error": null,
+    "reason": null,
+    "message": null,
+    "sent": "Democratic socialists know that no one has to live like this. If we li"
+  }
+]
 ```
 
 **Diagnoses**
@@ -520,8 +658,6 @@ that produced it:
                         signal at 0.6, so it dragged the whole score down."
 
      Look for a pattern. Five failures on one signal is one problem, not five. -->
-
-
 
 ---
 
