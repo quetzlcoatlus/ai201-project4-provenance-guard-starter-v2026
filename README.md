@@ -283,7 +283,7 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 ## How I Used AI
 
-I used AI throughout: to brainstorm and write my acceptance criteria, for the first version of `/submit` in `app.py`, and for the scoring and labels. These are the two moments that shaped the service most.
+I used AI throughout: to brainstorm and write my acceptance criteria, for the first version of `/submit` in `app.py`, and for the scoring and labels. In unit 8 I used it to extend the eval harness, diagnose failures, and pick the improvement. These are the three moments that shaped the service most.
 
 **Moment 1: Weighting the combining rule against false positives**
 
@@ -296,6 +296,12 @@ I used AI throughout: to brainstorm and write my acceptance criteria, for the fi
 - *What I asked for:* Criticism of my draft unsure label, "We're not sure if this is written by a person, but we don't think it was written by AI.", read as if I had written every word myself.
 - *What came back:* Five problems. The label contradicted itself (not a person, not AI). It cast doubt on the writer first. It claimed "not AI" across a band that includes AI-leaning scores. It gave no reason. It used "is written" where "was written" was meant. Three rewrites followed, each making the *checks* the uncertain thing. It also flagged my AI label as too blunt for the one label that will reach real writers by mistake, and suggested pointing to the appeal.
 - *What I changed:* I picked the third rewrite for unsure. I rewrote the AI label myself to soften it and add the appeal path: "Our checks say this reads as likely AI-generated. If you wrote this yourself, you can ask for a review." I kept my human label unchanged.
+
+**Moment 3 (unit 8): Diagnosing the misses and choosing the improvement**
+
+- *What I asked for:* A stage-and-mechanism diagnosis for every criterion miss and broken attack, using my before run log and attack run, with clarifying questions where it was unsure.
+- *What came back:* It recomputed the style sub-scores and perplexities for my criterion texts, and grouped all 22 failures into five problems. The biggest was that punctuation density pointed the wrong way: my AI texts were comma-heavy (0.089–0.105 marks per word, read as human) and my casual writing was sparse (0.029–0.039, read as AI). That held the AI texts' style scores under the gate's 0.6 floor. It also found that `/submit` still returned a 500 on a JSON array body. It offered two candidate improvements, the punctuation direction or the route checks, and asked which one I wanted. It flagged EV05 as arguably not a real break.
+- *What I changed:* I chose the punctuation fix, because it targeted two missed criteria, not attacks alone. I limited the change to the direction flip and the README write-up, and ran the before/after tests myself. The criteria run improved (3/9 → 6/9, gap −0.051 → +0.097). My after attack run then showed the same flip made every evasion get through. I kept that result in the README instead of reverting or hiding it. The flip had fitted my 9 criterion texts and failed on the attack set, which is the same mistake as calibrating on 3 bundled samples.
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
@@ -845,14 +851,32 @@ So the real finding is that **punctuation density has no stable direction**. It 
 <!-- For each attack still getting through and each criterion still missed:
      what you'd do, and why you stopped. -->
 
+**Criteria 3 and 4 (6/9 labels, 0.097 gap).** No clearly-human text reaches high-confidence human, and two formal human texts ("world is in chaos", DSA) are labelled AI.
+- *What I'd do:* weight punctuation 0, since the attack run showed it has no stable direction. Then recalibrate the style curves on a few dozen labelled texts across genres instead of three samples.
+- *Why I stopped:* the unit allows one improvement. Retuning on these 9 texts would also just repeat what went wrong with punctuation: a fix that fits one small set and breaks on the next. The deeper problem, both signals rewarding formal polish (diagnosis 2), needs a signal that measures something other than regularity, and that's beyond a calibration change.
 
+**Evasion (10 of 10 get through).** Every evasion lands in unsure, because the gate needs both signals at 0.6 or above and any edit that drags one down is enough (diagnosis 3).
+- *What I'd do:* let a very strong model score carry the AI label on its own.
+- *Why I stopped:* the data says not to. FP04–FP07, all human writing, have model scores of 0.95–0.98, at or above most of the AI texts. Loosening the gate would accuse those writers to catch the evasions, which is exactly the trade my criteria rule out.
+
+**EV08 and FP08 (very short text).** These are unsure on purpose: under 40 words, the shrink forces the score to 0.5. I'd leave this as is, because there isn't enough text to judge either way.
+
+**MF03–MF07 (control characters, punctuation, one long word, emoji, right-to-left script).** All are scored and labelled when they should be refused.
+- *What I'd do:* return a 400 when the text has no scorable words. I'd make `stylometry.words` Unicode-aware first, so non-English text isn't rejected along with emoji.
+- *Why I stopped:* it's a route fix, outside the one improvement.
+
+**MF08 (60,000 characters).** I'd cap request size with a 413 through Flask's `MAX_CONTENT_LENGTH`. I left this out of scope in criterion 5's note.
+
+**RQ02, RQ06 and RQ07.** I'd reject a missing or non-string `creator_id` with a 400. I'd also add the same `isinstance(payload, dict)` guard `/appeal` already has, so a JSON array body gets a 400 instead of a 500 with the debugger page. Each is a few lines, but they're also route fixes outside the one improvement. RQ07 is the most urgent, because it still exposes a stack trace.
+
+**RQ10 and RQ11 (429 instead of 400).** Callers without a `creator_id` all share one localhost rate-limit bucket. Requiring `creator_id` (the RQ02 fix) removes most of that sharing. I'd also validate the body before the limiter counts a request, so a malformed request gets told what's wrong instead of "too many submissions".
 
 **The trade I'd make if this ran for real:**
 
 <!-- Two sentences. Fewer wrong accusations means more AI text getting through.
      Say which way you'd go and WHO PAYS FOR IT. -->
 
-
+I'd keep the strict two-signal gate and accept that most AI text lands in "unsure", because a wrong accusation costs a real writer their reputation, and these signals fall hardest on non-native and formal writers like FP03. The people who pay for that are readers and honest writers, who share the site with AI text it won't name, plus the moderators who have to work through the larger "unsure" pile by hand.
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
