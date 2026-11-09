@@ -129,7 +129,8 @@ def punctuation_density(text: str) -> Optional[float]:
 # Per-metric calibration: (midpoint, steepness).
 #   midpoint  — the raw value that maps to 0.5 (coin flip).
 #   steepness — how sharply the sub-score moves either side of the midpoint.
-# All three use the "LOW raw value -> AI" direction (folk directions).
+# Spread and TTR use the "LOW raw value -> AI" direction (folk directions).
+# Punctuation is flipped to "HIGH -> AI" (see HIGH_MEANS_AI below).
 # Midpoints sit between the clearly_ai and clearly_human sample values.
 # Steepness 4 (was 2.5) pushes clear cases toward the ends so a strict
 # AI threshold stays reachable — idea 1, "spread the scores out".
@@ -150,6 +151,14 @@ STYLE_WEIGHTS = {
     "punctuation_density":    1.0,
 }
 
+# Metrics scored in the "HIGH raw value -> AI" direction instead.
+# Punctuation was flipped in unit 8: on the criterion texts the bundled-sample
+# direction was backwards. The AI texts are comma-heavy (0.089-0.105 marks per
+# word, lists and "First," / "However," transitions) while my casual writing
+# is sparse (0.029-0.039), so "low -> AI" scored AI text as human and my own
+# writing as AI. The midpoint (0.07) still sits between the two groups.
+HIGH_MEANS_AI = {"punctuation_density"}
+
 NEUTRAL = 0.5   # sub-score used when a metric can't be measured
 
 
@@ -169,10 +178,11 @@ def style_signal(text: str) -> tuple[float, list[str]]:
     The style signal as a 0–1 score. **Higher means more likely AI.**
 
     Rule:
-      1. Direction — all three measures are flipped so LOW raw value -> AI:
+      1. Direction — spread and TTR are flipped so LOW raw value -> AI;
+         punctuation runs the other way (HIGH_MEANS_AI):
            low sentence-length spread  -> AI (even, marching sentences)
            low type-token ratio        -> AI (narrower vocabulary)
-           low punctuation density     -> AI (fewer expressive marks)
+           high punctuation density    -> AI (comma lists, transitions)
          Note: on the 3 bundled samples, TTR actually ran the other way
          (AI text had the HIGHER ratio), so it is weighted 0 for now
          (STYLE_WEIGHTS). Spread and punctuation count equally.
@@ -214,6 +224,8 @@ def style_signal(text: str) -> tuple[float, list[str]]:
         else:
             midpoint, steepness = STYLE_CALIBRATION[name]
             sub = _low_means_ai(value, midpoint, steepness)
+            if name in HIGH_MEANS_AI:
+                sub = 1.0 - sub
         weighted_sum += weight * sub
         total_weight += weight
 

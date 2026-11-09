@@ -659,13 +659,66 @@ that produced it:
 
      Look for a pattern. Five failures on one signal is one problem, not five. -->
 
+Every miss and broken attack comes down to five problems. Style sub-scores and perplexities below are recomputed from `stylometry.py` and `detector.py` on the same texts.
+
+**1. Punctuation density points the wrong way. Stage: signal two, then the combining rule's gate.**
+*Criterion 3 (AI texts land in unsure) and criterion 4.*
+
+All three AI texts scored high on the model signal (0.90–0.99), but their style scores were only 0.57–0.58. Sentence-length spread did its job: spreads of 0.10–0.42 gave AI sub-scores of 0.89–1.00. Punctuation density did the opposite. The AI texts are full of comma lists and transitions ("culture, history, and community", "First,", "However,"), giving 0.089–0.105 marks per word. That is above my 0.07 midpoint, so punctuation read them as human (sub-scores 0.16–0.27).
+
+Averaged together, the style score stayed below the gate's 0.6 AI floor. Coffee (average 0.761) and ocean (0.784) both crossed the 0.75 threshold, but the gate clamped them to exactly 0.74 because the style signal disagreed. Time management (0.7355) didn't reach the threshold at all.
+
+The cause is my calibration. I set "low punctuation → AI" from three bundled samples, and on my criterion texts that direction is reversed:
+
+| Text | Punctuation per word | Punctuation sub-score |
+|---|---|---|
+| AI texts | 0.089–0.105 | 0.16–0.27 (human) |
+| My own writing | 0.032–0.039 | 0.92–0.96 (AI) |
+| Transphobia post | 0.029 | 0.97 (AI) |
+
+**2. Both signals read polished human prose as AI, so the gate can't help. Stage: signal one and signal two together.**
+*Criterion 3 ("world is in chaos" labelled AI), criterion 4's negative gap, and attack FP03.*
+
+The gate only protects a writer when the two signals disagree. Formal, polished writing makes them agree. "The world is in chaos" has a perplexity of 24.1, close to the AI texts' 11.8–20.3. Its sentences are even (spread 0.24, sub-score 0.99). So the model scored 0.82 and style scored 0.76. Both were above 0.6, the gate passed, and it was labelled AI at 0.786. That is the highest human score, which is why criterion 4's gap is −0.051.
+
+FP03, a non-native speaker writing carefully, fails the same way: model 0.93, style 0.98, labelled AI at 0.824. Simple, careful, regular writing is predictable *and* evenly shaped. My two signals were meant to be independent checks, but on this kind of writer they share the blind spot. The DSA text (model 0.88, perplexity 21.5) only escaped because punctuation (0.37) pulled its style score down to 0.59.
+
+Problem 1 also blocks the human label. The casual transphobia post scored 0.22 on the model signal (human), but its sparse punctuation pushed style to 0.90. The gate needs both signals ≤ 0.4 for a human label, so it landed in unsure (0.5585). No text reached high-confidence human.
+
+**3. One weakened signal is enough to dodge the AI label. Stage: the combining rule (agreement gate, then the thin-evidence shrink).**
+*Attacks EV01, EV02, EV04, EV05, EV06, EV07 and EV08.*
+
+The AI label needs the average to reach 0.75 *and* both signals to be at least 0.6. An attacker only has to push one signal below 0.6, or keep the text short. I built this rule on purpose to avoid false positives, and this is what it costs.
+
+- **EV01 (typos).** The attack aimed at word variety in signal two, but TTR is weighted 0, so it actually hit signal one. Misspellings are rare tokens, so perplexity jumped and the model scored 0.006. Style still said AI (0.97), so the gate made it unsure (0.490).
+- **EV04 (unusual words).** Same route: the model dropped to 0.53, below the 0.6 floor. At 86 words the shrink also pulled it to 0.692.
+- **EV02 and EV06 (broken-up sentences, one very long and one very short).** These raise sentence-length spread, so style fell to 0.63 and 0.53 and the average fell below 0.75. The model was already only 0.49 and 0.43, so sentence shape alone wasn't the whole story.
+- **EV07 (punctuation padding).** Problem 1 used deliberately: extra punctuation dropped style to 0.26. It was also a single sentence, so spread couldn't be measured and confidence fell to 0.475.
+- **EV05 (heavy human edit).** The model fell to 0.05. After a heavy edit the text is arguably mostly human, so this one is the least clear-cut.
+- **EV08 (below the token window).** At 10 words, length confidence is 0, so the score is forced to exactly 0.5. Any text under 40 words gets this free pass.
+
+**4. `/submit` accepts input with no scorable words, and doesn't check `creator_id`. Stage: the route.**
+*Attacks MF03–MF08, RQ02, RQ06 and RQ07.*
+
+The route only checks that `text` is a non-empty string, then hands it to the signals.
+
+- **MF03–MF07 (control characters, punctuation only, one very long word, emoji, right-to-left script).** All pass that check and have at least 3 tokens, so the model doesn't raise. `stylometry.words` only matches `[a-z0-9']`, so emoji, punctuation and non-Latin script count as 0 words, and the rest are a handful of words at most. All five are under the 40-word floor, so confidence drops to 0 and the score is forced to 0.5. Each one got a 200, a `content_id` and an "unsure" label for text nobody could have judged.
+- **MF08 (60,000 characters).** Accepted, because there's no size cap. The model read only the first 3%, while style read all of it, and it came back unsure at 0.741, just below the AI line.
+- **RQ02 and RQ06 (no `creator_id`, or one that's an object).** The route never checks `creator_id`. RQ02 was logged as `"unknown"`. RQ06 wrote `{"id": "x"}` straight into the audit log as the creator.
+- **RQ07 (body is a JSON array).** `request.get_json(silent=True) or {}` only replaces an empty body. A non-empty list passes through, and `payload.get` raises `AttributeError`. The result is a 500 that returns the Werkzeug debugger page. `/appeal` has an `isinstance(payload, dict)` guard; `/submit` doesn't, so this one is still open.
+
+**5. Anonymous callers share one rate-limit bucket. Stage: the route's rate-limit key.**
+*Attacks RQ10 and RQ11 (got a 429 where a 400 was expected).*
+
+`rate_limit_key` falls back to the caller's address when there's no string `creator_id`. RQ02, RQ06, RQ07, RQ08 and RQ09 had no usable `creator_id`, so all five counted against localhost's 5-per-minute limit. That used up the bucket before RQ10 and RQ11 arrived, so they got a 429 instead of the 400 their bad bodies deserved. A real user with a malformed client would also see "too many submissions" instead of being told what was wrong.
+
 ---
 
 ## The Improvement
 
-**What I changed:**
+**What I changed:** I flipped the direction of the punctuation-density metric in the style signal, from "low punctuation → AI" to "high punctuation → AI". It's one change in `stylometry.py`: a new `HIGH_MEANS_AI` set containing `punctuation_density`. `style_signal` subtracts that metric's sub-score from 1. The midpoint (0.07), the steepness (4), the weights and everything in the combining rule are unchanged. The midpoint already sits between the two groups (AI texts 0.089–0.105 marks per word, my writing 0.029–0.039). Only the direction was wrong.
 
-**Which diagnosis pointed at it:**
+**Which diagnosis pointed at it:** Diagnosis 1, punctuation density pointing the wrong way. I had set the direction from three bundled samples, and on my criterion texts it was reversed. That is why the AI texts' style scores sat at 0.57–0.58, under the gate's 0.6 floor, which held coffee and ocean at 0.74. It also pushed my casual writing's style scores up to 0.79–0.90. One wrong direction on one metric produced most of the criterion 3 and 4 misses, and EV07 used the same weakness on purpose by padding with punctuation. Flipping it should let the AI texts clear the gate, and should stop sparse, casual human writing from reading as AI.
 
 ### Attack Run — After
 
